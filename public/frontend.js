@@ -1,9 +1,24 @@
 // Establish a WebSocket connection to the server
 const socket = new WebSocket('ws://localhost:3000/ws');
 
+socket.addEventListener('open', () => {
+    console.log('Connected to the WS server');
+});
+
 // Listen for messages from the server
 socket.addEventListener('message', (event) => {
-    const data = JSON.parse(event.data);
+
+    try{
+        const data = JSON.parse(event.data);
+        if (data.type === 'updatePoll'){
+            console.log('New poll added', data);
+            onIncomingVote(data);
+        } else {
+            console.log("Unkown data type", data.type);
+        }
+    } catch (error){
+        console.error('Error parsing server data', error);
+    }
 
     //TODO: Handle the events from the socket
 });
@@ -34,6 +49,21 @@ function onNewPollAdded(data) {
  * @param {*} data The data from the server (probably containing which poll was updated and the new vote values for that poll)
  */
 function onIncomingVote(data) {
+    const poll = data.poll;
+    const id = document.getElementById(poll.id);
+
+    if(id){
+        let options = id.querySelectorAll(".poll-options");
+        options.innerHTML="";
+
+        poll.options.forEach(({answer, votes}) => {
+            options.innerHTML += `<li><strong>${answer}:</strong> ${votes} votes</li>`;
+        });
+
+        console.log('vote processed');
+    } else {
+        console.error('Vote could not be processed');
+    }
     
 }
 
@@ -51,6 +81,8 @@ function onVoteClicked(event) {
     const selectedOption = event.submitter.value;
     
     //TOOD: Tell the server the user voted
+    console.log(`poll ID: ${pollId}, selected option: ${selectedOption}`);
+    socket.send(JSON.stringify({type: "vote", pollId, option: selectedOption}));
 }
 
 //Adds a listener to each existing poll to handle things when the user attempts to vote
