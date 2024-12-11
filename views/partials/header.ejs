@@ -1,0 +1,30 @@
+<link rel="stylesheet" href="/styles.css">
+<header>
+    <div class="navigation">
+        <nav>
+            <ul style="list-style: none; display: flex; gap: 15px;">
+                <% if (session?.user?.id) { %>
+                    <form action="/dashboard" method="POST" style="display: inline;">
+                        <button type="submit">Dashboard</button>
+                    </form>
+
+                    <form action="/createPoll" method="GET">
+                        <button type="submit">Create Poll</button>
+                    </form>
+
+                    <form action="/logout" method="POST" style="display: inline;">
+                        <button type="submit">Logout</button>
+                    </form>
+
+                    <form action="/profile" method="GET" style="display: inline;">
+                        <button type="submit">Profile</button>
+                    </form>
+                <% } else { %>
+                    <li><a href=/login>Login</a></li>
+                    <li><a href=/signup>Register</a></li>
+
+                <% } %>
+            </ul>
+        </nav>
+    </div>
+</header>

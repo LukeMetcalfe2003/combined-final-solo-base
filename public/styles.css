@@ -160,3 +160,31 @@ button.action-button:hover {
     color: rgba(93, 142, 251, 0.8);
     cursor: pointer;
 }
+
+.navigation{
+    text-align: center;
+    color: white;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #1b397a;
+    height: max-content;
+}
+nav ul {
+   margin: 5px;
+   display: inline-block;
+   text-align: left;
+}
+
+nav li{
+    text-align: center;
+}
+
+nav ul li a {
+    color: white;
+    padding-left: 20px;
+    padding-right: 20px;
+}
