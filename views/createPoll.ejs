@@ -1,6 +1,14 @@
 <!-- TODO: Header? -->
+ <%- include('partials/header') %>
+<link rel="stylesheet" href="/styles.css">
 <body>
     <div class="main-content">
+        <% if (locals.sucessMessage) { %>
+            <p class="success-message"><%= sucessMessage %></p>
+        <% } %>
+        <% if (locals.errorMessage) { %>
+            <p class="error-message"><%= errorMessage %></p>
+        <% } %>
         <h1>Create a New Poll</h1>
         <form action="/createPoll" method="POST">
             <div class="form-input-container">
