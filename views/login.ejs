@@ -2,21 +2,16 @@
 <link rel="stylesheet" href="/styles.css">
 <div class="main-content">
     <h1>Login</h1>
-    <% if (locals.errorMessage) { %>
-        <p class="error-message"><%= errorMessage %></p>
-    <% } %>
-
     <form action="/login" method="POST">
-        <div class="form-input-container">
-            <label for="username">Username</label>
-            <input type="username" id="username" name="username" required>
-        </div>
-
-        <div class="form-input-container">
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" required>
-        </div>
+        <label for="username">username</label>
+        <input type="text" id="username" name="username" required>
+        <label for="password">password</label>
+        <input type="password" id="password" name="password" required>
 
         <button type="submit">Login</button>
-    </form>    
+    </form>  
+
+    <% if (errorMessage) { %>
+        <p><%= errorMessage %></p>
+    <% } %>
 </div>

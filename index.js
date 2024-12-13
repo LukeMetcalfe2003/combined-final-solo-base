@@ -7,9 +7,10 @@ const bcrypt = require('bcrypt');
 
 const PORT = 3000;
 //TODO: Update this URI to match your own MongoDB setup
-const MONGO_URI = 'mongodb://localhost:27017/keyin_test';
+const MONGO_URI = 'mongodb+srv://lukemetcalfe:8dogstrong@cluster0.qp8xr.mongodb.net/';
 const app = express();
 expressWs(app);
+const SALT_ROUNDS = 10;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
