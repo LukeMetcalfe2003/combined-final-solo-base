@@ -1,8 +1,18 @@
 <%- include('partials/header') %>
 <link rel="stylesheet" href="/styles.css">
 
-<div class="main-content">
-    <h1>Profile</h1>
-    <p>Welcome %%= username %></p>
-    <p>Polls participted in: <%= voteCount %></p>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+</head>
+<body>
+    <div class="main-content">
+        <h1>Profile</h1>
+        <p>Welcome <%= username %></p>
+        <p>Polls participated in: <%= voteCount %></p>
+    </div>
+</body>
+</html>

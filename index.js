@@ -6,6 +6,7 @@ const session = require('express-session');
 const bcrypt = require('bcrypt');
 const { type } = require('os');
 const { request } = require('http');
+const { on } = require('events');
 
 const PORT = 3000;
 //TODO: Update this URI to match your own MongoDB setup
@@ -31,7 +32,7 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
 });
 
-const user = mongoose.model('user', userSchema);
+const User = mongoose.model('User', userSchema);
 
 // connect to mongoose
 mongoose
@@ -39,12 +40,17 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Error connecting to MongoDB:", err));
 
-const pollSchema = new mongoose.Schema({
-  question: { type: String, required: true },
-  options: [{ answer: { type: String, required: true }, votes: { type: Number, default: 0 },},],
+  const pollSchema = new mongoose.Schema({
+    question: { type: String, required: true },
+    options: [
+        {
+            answer: { type: String, required: true },
+            votes: { type: Number, default: 0 },
+        },
+    ],
 });
 
-const poll = mongoose.model('poll', pollSchema);
+const Poll = mongoose.model('Poll', pollSchema);
 
 
 //Note: Not all routes you need are present here, some are missing and you'll need to add them yourself.
@@ -82,7 +88,7 @@ app.get('/login', async (request, response) => {
 
 app.post('/login', async (request, response) => {
     const { username, password } = request.body;
-    const user = await user.findOne({ username });
+    const user = await User.findOne({ username });
 
     if (user && (await bcrypt.compare(password, user.password))) {
         request.session.user = { id: user.id, username: user.username };
@@ -108,13 +114,13 @@ app.post('/signup', async (request, response) => {
             return response.render('signup', { errorMessage: 'Please fill out all fields' });
         }
 
-        const activeUser = await user.findOne({ username });
+        const activeUser = await User.findOne({ username });
         if (activeUser) {
             return response.render('signup', { errorMessage: 'Username already exists' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const createUser = new user({ username, password: hashedPassword });
+        const createUser = new User({ username, password: hashedPassword });
         await createUser.save();
 
         request.session.user = { id: createUser.id, username: createUser.username };
@@ -126,7 +132,7 @@ app.post('/signup', async (request, response) => {
 
 });
 
-app.post('/logout', async (request, response) =>{
+app.get('/logout', async (request, response) =>{
     request.session.destroy(() => {
         response.redirect('/');
     });
@@ -137,9 +143,15 @@ app.get('/dashboard', async (request, response) => {
         return response.redirect('/');
     }
 
-    //TODO: Fix the polls, this should contain all polls that are active. I'd recommend taking a look at the
-    //authenticatedIndex template to see how it expects polls to be represented
-    return response.render('index/authenticatedIndex', { polls: [] });
+    try {
+        const polls = await Poll.find(); // Fetch all polls from the database
+        const totalPolls = polls.length;
+
+        return response.render('index/authenticatedIndex', { polls, totalPolls });
+    } catch (error) {
+        console.error('Error fetching polls:', error);
+        return response.status(500).send('Internal Server Error');
+    }
 });
 
 app.get('/profile', async (request, response) => {
@@ -147,8 +159,15 @@ app.get('/profile', async (request, response) => {
         return response.redirect('/');
     }
 
-    return response.render('profile', { username: request.session.user.username });
+    try {
+        const user = await User.findById(request.session.user.id);
+        const voteCount = await Poll.countDocuments({ 'options.votes': { $gt: 0 } }); // Example query to count polls participated in
 
+        return response.render('profile', { username: user.username, voteCount });
+    } catch (error) {
+        console.error('Error fetching profile data:', error);
+        return response.status(500).send('Internal Server Error');
+    }
 });
 
 app.get('/createPoll', async (request, response) => {
@@ -156,7 +175,7 @@ app.get('/createPoll', async (request, response) => {
         return response.redirect('/');
     }
 
-    return response.render('createPoll');
+    return response.render('createPoll', { errorMessage: null });
 });
 
 // Poll creation
@@ -164,25 +183,19 @@ app.post('/createPoll', async (request, response) => {
     const { question, options } = request.body;
     const formattedOptions = Object.values(options).map((option) => ({ answer: option, votes: 0 }));
 
-    const pollCreationError = onCreateNewPoll(question, formattedOptions);
-    if (pollCreationError){
+    const pollCreationError = await onCreateNewPoll(question, formattedOptions);
+    if (pollCreationError) {
         return response.render('createPoll', { errorMessage: pollCreationError });
     }
 
-    // Notify all connected clients that a new poll was created
-    connectedClients.forEach((client) => {
-        client.send(JSON.stringify({ type: 'newPoll', poll: newPoll }));
-    });
-
     return response.redirect('/dashboard');
-    //TODO: If an error occurs, what should we do?
 });
 
 app.post('/vote', async (request, response) => {
     const { pollId, selectedOption } = request.body;
 
     try {
-        const poll = await poll.findById(pollId);
+        const poll = await Poll.findById(pollId);
         if (!poll){
             return response.status(404).send('Poll not found');
         }
@@ -223,16 +236,15 @@ mongoose.connect(MONGO_URI).then(() => {
  */
 async function onCreateNewPoll(question, pollOptions) {
     try {
-        //TODO: Save the new poll to MongoDB
-        const newPoll = new poll({ question, options: pollOptions });
+        // Save the new poll to MongoDB
+        const newPoll = new Poll({ question, options: pollOptions });
         await newPoll.save();
 
-        //TODO: Tell all connected sockets that a new poll was added
+        // Tell all connected sockets that a new poll was added
         connectedClients.forEach((client) => {
             client.send(JSON.stringify({ type: 'newPoll', poll: newPoll }));
         });
-    }
-    catch (error) {
+    } catch (error) {
         console.error(error);
         return "Error creating the poll, please try again";
     }
@@ -251,7 +263,7 @@ async function onCreateNewPoll(question, pollOptions) {
  */
 async function onNewVote(pollId, selectedOption) {
     try {
-        const poll = await poll.findById(pollId);
+        const poll = await Poll.findById(pollId);
         if (!poll) {
             console.error('Poll not found');
             return;

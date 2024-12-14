@@ -1,29 +1,49 @@
 <!-- TODO: Header? -->
  <%- include('partials/header') %>
-<link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/styles.css">
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Poll</title>
+</head>
 <body>
     <div class="main-content">
         <h1>Create a New Poll</h1>
         <form action="/createPoll" method="POST">
-            <div class="form-input-container">
-                <label for="question">Poll Question:</label>
-                <input type="text" id="question" name="question" required>
-            </div>
-            <div class="form-input-container">
+            <label for="question">Question:</label>
+            <input type="text" id="question" name="question" required>
+            <div id="options">
                 <label for="option1">Option 1:</label>
-                <input type="text" id="option1" name="options[Option 1]" required>
-            </div>
-            <div class="form-input-container">
+                <input type="text" id="option1" name="options[option1]" required>
                 <label for="option2">Option 2:</label>
-                <input type="text" id="option2" name="options[Option 2]" required>
+                <input type="text" id="option2" name="options[option2]" required>
             </div>
-            <!-- If necessary, you can add more options similar to how they were added above -->
-            <button type="submit" class="action-button full-width">Create Poll</button>
+            <button type="button" id="addOption">Add Option</button>
+            <button type="submit">Create Poll</button>
         </form>
 
         <% if (errorMessage) { %>
             <p><%= errorMessage %></p>
         <% } %>
     </div>
+
+    <script>
+        document.getElementById('addOption').addEventListener('click', function() {
+            const optionsDiv = document.getElementById('options');
+            const optionCount = optionsDiv.children.length / 2 + 1;
+            const newOptionLabel = document.createElement('label');
+            newOptionLabel.setAttribute('for', `option${optionCount}`);
+            newOptionLabel.textContent = `Option ${optionCount}:`;
+            const newOptionInput = document.createElement('input');
+            newOptionInput.setAttribute('type', 'text');
+            newOptionInput.setAttribute('id', `option${optionCount}`);
+            newOptionInput.setAttribute('name', `options[option${optionCount}]`);
+            newOptionInput.required = true;
+            optionsDiv.appendChild(newOptionLabel);
+            optionsDiv.appendChild(newOptionInput);
+        });
+    </script>
 </body>
 </html>
