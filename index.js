@@ -6,7 +6,6 @@ const session = require('express-session');
 const bcrypt = require('bcrypt');
 const { type } = require('os');
 const { request } = require('http');
-const { on } = require('events');
 
 const PORT = 3000;
 //TODO: Update this URI to match your own MongoDB setup
@@ -30,6 +29,7 @@ let connectedClients = [];
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true },
     password: { type: String, required: true },
+    participatedPolls: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Poll' }] // Track participated polls
 });
 
 const User = mongoose.model('User', userSchema);
@@ -40,7 +40,7 @@ mongoose
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Error connecting to MongoDB:", err));
 
-  const pollSchema = new mongoose.Schema({
+const pollSchema = new mongoose.Schema({
     question: { type: String, required: true },
     options: [
         {
@@ -92,7 +92,11 @@ app.post('/login', async (request, response) => {
 
     if (user && (await bcrypt.compare(password, user.password))) {
         request.session.user = { id: user.id, username: user.username };
-        return response.redirect('/dashboard');
+
+        // Fetch the number of polls the user has participated in
+        const voteCount = user.participatedPolls.length;
+
+        return response.redirect('/profile');
     }
 
     return response.render('login', { errorMessage: 'Invalid username or password' });
@@ -160,8 +164,8 @@ app.get('/profile', async (request, response) => {
     }
 
     try {
-        const user = await User.findById(request.session.user.id);
-        const voteCount = await Poll.countDocuments({ 'options.votes': { $gt: 0 } }); // Example query to count polls participated in
+        const user = await User.findById(request.session.user.id).populate('participatedPolls');
+        const voteCount = user.participatedPolls.length;
 
         return response.render('profile', { username: user.username, voteCount });
     } catch (error) {
@@ -184,7 +188,7 @@ app.post('/createPoll', async (request, response) => {
     const formattedOptions = Object.values(options).map((option) => ({ answer: option, votes: 0 }));
 
     const pollCreationError = await onCreateNewPoll(question, formattedOptions);
-    if (pollCreationError) {
+    if (pollCreationError){
         return response.render('createPoll', { errorMessage: pollCreationError });
     }
 
@@ -205,6 +209,13 @@ app.post('/vote', async (request, response) => {
         if (option) {
             option.votes++;
             await poll.save();
+
+            // Add poll to user's participated polls
+            const user = await User.findById(request.session.user.id);
+            if (!user.participatedPolls.includes(pollId)) {
+                user.participatedPolls.push(pollId);
+                await user.save();
+            }
 
             connectedClients.forEach((client) => {
                 client.send(JSON.stringify({ type: 'vote', pollId, selectedOption, votes: option.votes }));
@@ -244,7 +255,8 @@ async function onCreateNewPoll(question, pollOptions) {
         connectedClients.forEach((client) => {
             client.send(JSON.stringify({ type: 'newPoll', poll: newPoll }));
         });
-    } catch (error) {
+    }
+    catch (error) {
         console.error(error);
         return "Error creating the poll, please try again";
     }

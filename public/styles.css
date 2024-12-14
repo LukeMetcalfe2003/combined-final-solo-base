@@ -194,3 +194,16 @@ nav a:hover {
     background-color: white;
     text-decoration: underline;
 }
+
+.form-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.form-group label {
+    margin-right: 10px;
+    width: 100px; /* Adjust the width as needed */
+}
+.form-group input {
+    flex: 1;
+}
