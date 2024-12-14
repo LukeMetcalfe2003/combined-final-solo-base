@@ -3,7 +3,7 @@
     <div class="navigation">
         <nav>
             <ul style="list-style: none; display: flex; gap: 15px;">
-                <% if (session?.user?.id) { %>
+                <% if (user) { %>
                     <form action="/dashboard" method="POST" style="display: inline;">
                         <button type="submit">Dashboard</button>
                     </form>

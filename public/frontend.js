@@ -1,26 +1,33 @@
 // Establish a WebSocket connection to the server
 const socket = new WebSocket('ws://localhost:3000/ws');
 
-socket.addEventListener('open', () => {
-    console.log('Connected to the WS server');
-});
-
 // Listen for messages from the server
 socket.addEventListener('message', (event) => {
+    const data = JSON.parse(event.data);
+    if (data.type === 'updatePoll') {
+        const poll = data.poll;
+        const pollId = poll.id;
+        const pollElement = document.getElementById(pollId);
 
-    try{
-        const data = JSON.parse(event.data);
-        if (data.type === 'updatePoll'){
-            console.log('New poll added', data);
-            onIncomingVote(data);
-        } else {
-            console.log("Unkown data type", data.type);
+        if (pollElement){
+            const options = pollElement.querySelectorAll('.poll-options');
+            options.forEach((optionElement)=> {
+                const optionAns = optionElement.querySelector("strong").textContent.trim();
+
+                const option = poll.options.find((option) => option.answer === optionAns);
+                if(option){
+                    optionElement.textContent = `${option.answer}: ${option.votes} votes`;
+                }
+            });
         }
-    } catch (error){
-        console.error('Error parsing server data', error);
+    }
+
+    if (data.type === 'newPoll') {
+        onNewPollAdded(data);
     }
 
     //TODO: Handle the events from the socket
+    
 });
 
 
@@ -72,7 +79,7 @@ function onIncomingVote(data) {
  * 
  * @param {FormDataEvent} event The form event sent after the user clicks a poll option to "submit" the form
  */
-function onVoteClicked(event) {
+async function onVoteClicked(event) {
     //Note: This function only works if your structure for displaying polls on the page hasn't changed from the template. If you change the template, you'll likely need to change this too
     event.preventDefault();
     const formData = new FormData(event.target);
@@ -81,8 +88,26 @@ function onVoteClicked(event) {
     const selectedOption = event.submitter.value;
     
     //TOOD: Tell the server the user voted
-    console.log(`poll ID: ${pollId}, selected option: ${selectedOption}`);
-    socket.send(JSON.stringify({type: "vote", pollId, option: selectedOption}));
+    try {
+        const res = await fetch('/vote', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({pollId: pollId, selectedOption: selectedOption}),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            console.log('Vote processed');
+            updatePollId(pollId, selectedOption);
+        } else {
+            console.error("Error: ", data.message);
+        }
+
+    } catch (error) {
+        console.error("Error: ", error);
+    }
 }
 
 //Adds a listener to each existing poll to handle things when the user attempts to vote
