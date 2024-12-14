@@ -66,10 +66,10 @@ app.ws('/ws', (socket, request) => {
 });
 
 app.get('/', async (request, response) => {
-    const pollCnt = await poll.countDocuments({});
-    return response.render('index/unauthenticatedIndex', {pollCnt});
-
-    // response.render('index/unauthenticatedIndex', {pollCnt});
+    if (request.session.user?.id) {
+        return response.redirect('/dashboard');
+    }
+    return response.render('index/unauthenticatedIndex', {});
 });
 
 app.get('/login', async (request, response) => {

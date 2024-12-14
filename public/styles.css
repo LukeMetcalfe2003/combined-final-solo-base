@@ -179,12 +179,18 @@ nav ul {
    text-align: left;
 }
 
-nav li{
-    text-align: center;
+nav a:link {
+    color: white;
+    text-decoration: none;
 }
 
-nav ul li a {
+nav a:visited {
     color: white;
-    padding-left: 20px;
-    padding-right: 20px;
+    text-decoration: none;
+}
+
+nav a:hover {
+    color: #1b397a;
+    background-color: white;
+    text-decoration: underline;
 }
