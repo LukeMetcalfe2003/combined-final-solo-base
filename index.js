@@ -205,7 +205,7 @@ app.post('/vote', async (request, response) => {
     }
 })
 
-mongoose.connection(MONGO_URI).then(() => {
+mongoose.connect(MONGO_URI).then(() => {
     console.log('Connected to MongoDB');
     app.listen(PORT, () => {
         console.log(`Server listening on http://localhost:${PORT}`);
